@@ -1,17 +1,14 @@
 {
   "name": "BigV",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "bun run --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir=dist --target=esnext --minify",
+    "start": "bun run dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.28.2",
   "dependencies": {
-    "express": "^5.2.1",
-    "multer": "^2.0.2"
+    "hono": "^4.11.8"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
   }
 }
