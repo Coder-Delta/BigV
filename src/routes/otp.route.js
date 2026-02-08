@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import redis from '../redis_server.js';
+import redis from "../service/redis.service.js"
 import { testMail, verifyOtp } from '../controllers/user.controller.js';
 import dotenv from 'dotenv';
 

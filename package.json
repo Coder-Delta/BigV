@@ -13,6 +13,7 @@
   "packageManager": "pnpm@10.28.2",
   "dependencies": {
     "@upstash/redis": "^1.36.2",
+    "amqplib": "^0.10.9",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
     "multer": "^2.0.2",
