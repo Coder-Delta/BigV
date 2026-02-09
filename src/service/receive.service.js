@@ -1,36 +1,70 @@
-import amqp from "amqplib/callback_api"
+import amqp from "amqplib/callback_api.js";
+import { exec } from "child_process";
 
-amqp.connect('amqp://localhost', function (error0, connection) {
-    if (error0) {
-        throw error0;
-    }
-    connection.createChannel(function (error1, channel) {
-        if (error1) {
-            throw error1;
+const QUEUE = "task_queue";
+const RABBIT_URL = "amqp://127.0.0.1";
+
+function run(command) {
+  return new Promise((resolve, reject) => {
+    exec(command, { shell: true }, (error, stdout, stderr) => {
+      if (error) {
+        reject(stderr || error.message);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+}
+
+// Convert Windows path → POSIX path for bash
+function toPosixPath(p) {
+  return p.replace(/\\/g, "/");
+}
+
+amqp.connect(RABBIT_URL, (error0, connection) => {
+  if (error0) throw error0;
+
+  connection.createChannel((error1, channel) => {
+    if (error1) throw error1;
+
+    channel.assertQueue(QUEUE, { durable: true });
+    channel.prefetch(1);
+
+    console.log("Worker started. Waiting for jobs...");
+
+    channel.consume(
+      QUEUE,
+      async (msg) => {
+        if (!msg) return;
+
+        let job;
+        try {
+          job = JSON.parse(msg.content.toString());
+        } catch {
+          console.error("Invalid JSON payload");
+          channel.ack(msg);
+          return;
         }
 
-        var queue = 'task_queue';
+        let { videoPath, baseName } = job;
 
-        channel.assertQueue(queue, {
-            durable: true
-        });
+        // IMPORTANT: normalize path for bash
+        videoPath = toPosixPath(videoPath);
 
-        channel.prefetch(1); // make sure one worker handles one message at a time
+        console.log("Job received:", { videoPath, baseName });
 
-        channel.consume(queue, function (msg) {
+        try {
+          await run(`bash -lc "./videoConvert.sh '${videoPath}'"`);
+          await run(`bash -lc "./videoPackagingHLS.sh '${baseName}'"`);
 
-            if (msg === null) return; // safety check if consumer is cancelled
-
-            var secs = msg.content.toString().split('.').length - 1;
-
-            console.log(" [x] Received %s", msg.content.toString());
-            setTimeout(function () {
-                channel.ack(msg); // acknowledge the message to the server
-                console.log(" [x] Done");
-            }, secs * 1000);
-        }, {
-            noAck: false // make sure that the message won't be lost if the worker dies before processing the message,
-            // so we need to send an acknowledgment to the server after processing the message
-        });
-    });
+          channel.ack(msg);
+          console.log("Job completed:", baseName);
+        } catch (err) {
+          console.error("Job failed:", err);
+          channel.nack(msg, false, false);
+        }
+      },
+      { noAck: false }
+    );
+  });
 });

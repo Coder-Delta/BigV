@@ -1,28 +1,68 @@
-//a fake task described by Hello... will take three seconds.
-//docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4-management to start the rabbitmq server in docker container
+import fs from "fs";
+import path from "path";
+import amqp from "amqplib/callback_api.js";
+import { fileURLToPath } from "url";
 
-import amqp from "amqplib/callback_api"
+/* Resolve project root safely */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, "../..");
 
-amqp.connect('amqp://localhost', function (error0, connection) {
-    if (error0) {
-        throw error0;
+/* RabbitMQ */
+const RABBIT_URL = "amqp://127.0.0.1";
+const QUEUE = "task_queue";
+
+/* Video directory (absolute) */
+const VIDEO_DIR = path.join(ROOT_DIR, "public", "vid");
+
+/* Allowed extensions */
+const VIDEO_EXT = [".mp4", ".mkv", ".mov", ".webm"];
+
+function getVideos(dir) {
+    if (!fs.existsSync(dir)) {
+        throw new Error(`Video directory not found: ${dir}`);
     }
-    connection.createChannel(function (error1, channel) {
-        if (error1) {
-            throw error1;
+
+    return fs.readdirSync(dir)
+        .filter(f => VIDEO_EXT.includes(path.extname(f).toLowerCase()))
+        .map(f => path.join("public", "vid", f)); // relative path for worker
+}
+
+amqp.connect(RABBIT_URL, (err0, connection) => {
+    if (err0) throw err0;
+
+    connection.createChannel((err1, channel) => {
+        if (err1) throw err1;
+
+        channel.assertQueue(QUEUE, { durable: true });
+
+        const videos = getVideos(VIDEO_DIR);
+
+        if (videos.length === 0) {
+            console.log("No videos found in public/vid");
+            process.exit(0);
         }
 
-        let queue = 'task_queue';
-        let msg = process.argv.slice(2).join(' ') || "Hello World!";
+        for (const videoPath of videos) {
+            const baseName = path.basename(videoPath, path.extname(videoPath));
 
-        channel.assertQueue(queue, {
-            durable: true // make sure that the queue won't be lost if the RabbitMQ server crashes, it stores the queue on disk actually it store in the catch memory by default
-        });
-        channel.sendToQueue(queue, Buffer.from(msg), {
-            persistent: true // make sure that the message won't be lost if the RabbitMQ server crashes
-        });
-        console.log(" [x] Sent '%s'", msg);
-        setTimeout(function () {
+            const job = {
+                videoPath,
+                baseName,
+                task: "video_convert_hls",
+                createdAt: Date.now()
+            };
+
+            channel.sendToQueue(
+                QUEUE,
+                Buffer.from(JSON.stringify(job)),
+                { persistent: true }
+            );
+
+            console.log("Job queued:", job);
+        }
+
+        setTimeout(() => {
             connection.close();
             process.exit(0);
         }, 500);
