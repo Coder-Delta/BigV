@@ -1,6 +1,6 @@
 import transporter from "../service/mail.service.js"
 import { generateOTP } from "../utils/otpGenerator.js";
-import redis from "../redis_server.js"
+import redis from "../service/redis.service.js";
 
 // Send OTP Mail
 const testMail = async (req, res) => {
