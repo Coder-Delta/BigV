@@ -54,8 +54,8 @@ amqp.connect(RABBIT_URL, (error0, connection) => {
         console.log("Job received:", { videoPath, baseName });
 
         try {
-          await run(`bash -lc "./videoConvert.sh '${videoPath}'"`);
-          await run(`bash -lc "./videoPackagingHLS.sh '${baseName}'"`);
+          await run(`bash -lc "src/service/videoConvert.sh '${videoPath}'"`);
+          await run(`bash -lc "src/service/videoPackagingHLS.sh '${baseName}'"`);
 
           channel.ack(msg);
           console.log("Job completed:", baseName);
