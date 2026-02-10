@@ -1,23 +1,26 @@
 {
   "name": "BigV",
   "version": "1.0.0",
-  "description": "",
+  "description": "A video processing and streaming application built with Node.js, Express, and Redis. It allows users to upload videos, convert them to HLS format, and stream them efficiently. The application also includes features for email notifications and message queuing using RabbitMQ.",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "convert": "sh src/service/videoConvert.sh public/vid/test.mp4",
+    "hls": "sh src/service/videoPackagingHLS.sh test",
+    "process": "npm run convert && npm run hls"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "Code",
+    "Backend"
+  ],
+  "author": "Coder-Delta",
   "license": "ISC",
   "packageManager": "pnpm@10.28.2",
   "dependencies": {
-    "@upstash/redis": "^1.36.2",
     "amqplib": "^0.10.9",
     "dotenv": "^17.2.4",
-    "express": "^5.2.1",
-    "multer": "^2.0.2",
-    "nodemailer": "^8.0.1"
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

@@ -1,15 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Input from CLI
 INPUT_REL="$1"
+[ -n "$INPUT_REL" ] || { echo "Usage: $0 <project-relative-input-path>"; exit 1; }
 
-[ -n "$INPUT_REL" ] || { echo "Usage: $0 <input_video_path>"; exit 1; }
+PROJECT_ROOT="$BASE_DIR/../.."
 
-INPUT="$BASE_DIR/../../$INPUT_REL"
-OUTDIR="$BASE_DIR/../../public/output"
+INPUT="$PROJECT_ROOT/$INPUT_REL"
+OUTDIR="$PROJECT_ROOT/public/output"
 
 FILENAME="$(basename "$INPUT")"
 BASENAME="${FILENAME%.*}"
